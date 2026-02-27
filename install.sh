@@ -23,6 +23,9 @@ if [[ ! -f "$LAUNCHER" ]]; then
     exit 1
 fi
 
+# Ensure launcher is executable
+chmod +x "$LAUNCHER"
+
 # Ensure ~/.local/bin exists
 mkdir -p "$BIN_DIR"
 
@@ -72,7 +75,7 @@ if [[ "$IN_PATH" == false ]]; then
     echo ""
 
     read -rp "   Soll ich das automatisch tun? [J/n]: " confirm
-    if [[ "${confirm,,}" != "n" ]]; then
+    if echo "$confirm" | grep -iqv '^n$'; then
         echo '' >> "$RC_FILE"
         echo '# Claude Code Docker commands' >> "$RC_FILE"
         echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$RC_FILE"
