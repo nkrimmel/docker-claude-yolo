@@ -83,7 +83,10 @@ PROJECT_DIR="$(cd "$PROJECT_DIR" && pwd)"
 # --- Build image if needed ---
 if [[ "$FORCE_BUILD" == true ]] || ! docker image inspect "$IMAGE_NAME" &>/dev/null; then
     echo "🔨 Building Docker image '$IMAGE_NAME'..."
-    docker build -t "$IMAGE_NAME" "$SCRIPT_DIR"
+    docker build \
+        --build-arg USER_UID="$(id -u)" \
+        --build-arg USER_GID="$(id -g)" \
+        -t "$IMAGE_NAME" "$SCRIPT_DIR"
     echo "✅ Image built successfully."
     echo ""
 else
@@ -98,11 +101,18 @@ if [[ "$LOGIN_MODE" == true ]]; then
     echo ""
 
     mkdir -p "$HOME/.claude"
+
+    # --network host works on Linux but not on Docker Desktop (Mac/Windows)
+    NETWORK_ARGS=()
+    if [[ "$(uname -s)" == "Linux" ]]; then
+        NETWORK_ARGS+=(--network host)
+    fi
+
     docker run -it --rm \
         --name "${CONTAINER_NAME}-login" \
         -v "$HOME/.claude":/home/claude/.claude \
         -e TERM="xterm-256color" \
-        --network host \
+        "${NETWORK_ARGS[@]}" \
         "$IMAGE_NAME" \
         bash -c "claude login"
 
