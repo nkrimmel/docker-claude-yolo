@@ -95,27 +95,28 @@ else
     echo ""
 fi
 
-# --- Login mode ---
+# --- Login mode: run claude login on HOST (not in container) ---
 if [[ "$LOGIN_MODE" == true ]]; then
     echo "🔐 Starting subscription login..."
-    echo "   This opens a browser window for OAuth authentication."
     echo ""
 
     mkdir -p "$HOME/.claude"
 
-    # --network host works on Linux but not on Docker Desktop (Mac/Windows)
-    NETWORK_ARGS=()
-    if [[ "$(uname -s)" == "Linux" ]]; then
-        NETWORK_ARGS+=(--network host)
+    # Check if claude CLI is available on host
+    if command -v claude &>/dev/null; then
+        claude login
+    else
+        echo "❌ Claude Code CLI ist nicht auf dem Host installiert."
+        echo ""
+        echo "   Installieren mit:"
+        echo "   npm install -g @anthropic-ai/claude-code"
+        echo ""
+        echo "   Oder manuell einloggen:"
+        echo "   1. claude-docker starten (ohne --login)"
+        echo "   2. Im Container: claude login"
+        echo "   Die Tokens werden in ~/.claude gespeichert."
+        exit 1
     fi
-
-    docker run -it --rm \
-        --name "${CONTAINER_NAME}-login" \
-        -v "$HOME/.claude":/home/claude/.claude \
-        -e TERM="xterm-256color" \
-        "${NETWORK_ARGS[@]}" \
-        "$IMAGE_NAME" \
-        bash -c "claude login"
 
     echo ""
     echo "✅ Login successful! Tokens saved to ~/.claude"
@@ -171,8 +172,9 @@ echo "  Auth:       $AUTH_MODE"
 echo "  YOLO mode:  $YOLO_MODE"
 echo ""
 
-# --- Ensure ~/.claude exists for persistent config ---
+# --- Ensure config paths exist for persistent config ---
 mkdir -p "$HOME/.claude"
+touch "$HOME/.claude.json"
 
 # --- Stop old container if running ---
 if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
@@ -193,6 +195,7 @@ DOCKER_ARGS=(
     -v "$PROJECT_DIR":/workspace
     -v claude-code-npm-cache:/home/claude/.npm
     -v "$HOME/.claude":/home/claude/.claude
+    -v "$HOME/.claude.json":/home/claude/.claude.json
     -e TERM="xterm-256color"
 )
 
