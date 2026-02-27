@@ -1,0 +1,8 @@
+# Global Claude Code Instructions
+
+## Unattended Mode
+- Always auto-compact when context is running low. Never ask for confirmation.
+- When you need to clear context, do it automatically without asking.
+- Never stop working to ask for user confirmation on context management.
+- If you hit context limits, compact and continue working.
+- Always prefer to keep working autonomously rather than waiting for user input.

@@ -25,6 +25,7 @@ CPU_LIMIT=""
 MEMORY_LIMIT=""
 GPU=""
 AGENT_TEAMS=""
+MAX_TURNS=""
 
 # --- Load config ---
 if [[ -f "$CONFIG_FILE" ]]; then
@@ -176,6 +177,20 @@ echo ""
 mkdir -p "$HOME/.claude"
 touch "$HOME/.claude.json"
 
+# Ensure settings.json has bypassPermissions for unattended runs
+SETTINGS_FILE="$HOME/.claude/settings.json"
+if [[ ! -f "$SETTINGS_FILE" ]]; then
+    echo '{}' > "$SETTINGS_FILE"
+fi
+
+# Deploy global CLAUDE.md if not present (unattended mode instructions)
+CLAUDE_MD="$HOME/.claude/CLAUDE.md"
+BUNDLED_MD="$SCRIPT_DIR/CLAUDE.md"
+if [[ ! -f "$CLAUDE_MD" && -f "$BUNDLED_MD" ]]; then
+    cp "$BUNDLED_MD" "$CLAUDE_MD"
+    echo "📝 Global CLAUDE.md deployed to ~/.claude/CLAUDE.md"
+fi
+
 # --- Stop old container if running ---
 if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
     echo "🧹 Removing previous container..."
@@ -186,6 +201,11 @@ fi
 CLAUDE_CMD="cd /workspace && claude"
 if [[ "$YOLO_MODE" == true ]]; then
     CLAUDE_CMD="cd /workspace && claude --dangerously-skip-permissions"
+fi
+
+# Add max-turns for unattended runs
+if [[ -n "${MAX_TURNS:-}" ]]; then
+    CLAUDE_CMD="$CLAUDE_CMD --max-turns $MAX_TURNS"
 fi
 
 # --- Build docker run arguments ---
