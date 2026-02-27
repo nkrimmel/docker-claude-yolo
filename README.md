@@ -6,14 +6,34 @@ Der Container kann **nur** auf das gemountete Projektverzeichnis zugreifen – d
 ## Setup
 
 ```bash
-# 1. API Key setzen (in .bashrc/.zshrc für Persistenz)
-export ANTHROPIC_API_KEY="sk-ant-..."
-
-# 2. Script ausführbar machen
+# 1. Script ausführbar machen
 chmod +x claude-docker.sh
 
-# 3. Image bauen & Claude starten
-./claude-docker.sh /pfad/zu/deinem/projekt
+# 2. Config anlegen und editieren
+cp .config.example .config
+nano .config
+```
+
+## Auth: Subscription vs. API Key
+
+Konfiguriere `AUTH_MODE` in `.config`, oder lass es auf `"auto"`.
+
+### Subscription (Pro/Team/Enterprise)
+
+```bash
+# Einmalig einloggen – öffnet Browser-URL
+./claude-docker.sh --login
+
+# Danach einfach starten
+./claude-docker.sh ~/projects/mein-projekt
+```
+
+### API Key
+
+In `.config` setzen:
+```bash
+AUTH_MODE="apikey"
+ANTHROPIC_API_KEY="sk-ant-..."
 ```
 
 ## Verwendung
@@ -32,22 +52,30 @@ chmod +x claude-docker.sh
 ./claude-docker.sh --build
 ```
 
-## Was passiert
+## Konfiguration
 
-- **Dockerfile** installiert Node.js 22, Git, Python3 und Claude Code
-- **claude-docker.sh** baut das Image (einmalig) und startet einen Container
-- Dein Projektordner wird als `/workspace` in den Container gemountet
-- npm-Cache wird als Docker Volume persistiert (schnellere Starts)
-- Container wird nach Beenden automatisch gelöscht (`--rm`)
+Alle Einstellungen liegen in `.config` (siehe `.config.example`):
 
-## Warum Docker?
+| Variable         | Beschreibung                          | Default              |
+|------------------|---------------------------------------|----------------------|
+| AUTH_MODE        | `auto`, `subscription` oder `apikey`  | `auto`               |
+| ANTHROPIC_API_KEY| API Key für apikey-Modus              | (leer)               |
+| IMAGE_NAME       | Docker Image Name                     | `claude-code`        |
+| CONTAINER_NAME   | Container Name                        | `claude-code-session`|
+| CPU_LIMIT        | CPU-Limit (z.B. `4`)                  | (unbegrenzt)         |
+| MEMORY_LIMIT     | RAM-Limit (z.B. `8g`)                 | (unbegrenzt)         |
+| GPU              | GPU-Passthrough (z.B. `all`)          | (deaktiviert)        |
 
-Mit `--dangerously-skip-permissions` kann Claude Code beliebige Shell-Befehle ausführen.
-Ohne Docker betrifft das dein **gesamtes** Dateisystem.
-Im Container ist Claude auf `/workspace` (= dein Projekt) beschränkt.
+> ⚠️ `.config` ist in `.gitignore` und wird **nicht** committed.
+> Nur `.config.example` wird versioniert.
 
-## Hinweise
+## Dateistruktur
 
-- Der `ANTHROPIC_API_KEY` muss als Umgebungsvariable gesetzt sein
-- Git-Commits innerhalb des Containers landen im gemounteten Verzeichnis
-- Für maximale Sicherheit: vorher einen Git-Branch erstellen
+```
+├── .config.example   # Template (wird committed)
+├── .config           # Deine Config (wird NICHT committed)
+├── .gitignore
+├── claude-docker.sh  # Launcher Script
+├── Dockerfile
+└── README.md
+```
