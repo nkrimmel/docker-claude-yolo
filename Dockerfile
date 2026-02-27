@@ -1,6 +1,6 @@
 FROM node:22-slim
 
-# System dependencies
+# System dependencies + tmux for agent teams
 RUN apt-get update && apt-get install -y --no-install-recommends \
     bash \
     git \
@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openssh-client \
     jq \
     ripgrep \
+    tmux \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Claude Code globally

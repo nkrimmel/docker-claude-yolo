@@ -65,9 +65,31 @@ Alle Einstellungen liegen in `.config` (siehe `.config.example`):
 | CPU_LIMIT        | CPU-Limit (z.B. `4`)                  | (unbegrenzt)         |
 | MEMORY_LIMIT     | RAM-Limit (z.B. `8g`)                 | (unbegrenzt)         |
 | GPU              | GPU-Passthrough (z.B. `all`)          | (deaktiviert)        |
+| AGENT_TEAMS      | Multi-Agent Teams mit tmux Panes      | (deaktiviert)        |
 
 > ⚠️ `.config` ist in `.gitignore` und wird **nicht** committed.
 > Nur `.config.example` wird versioniert.
+
+## Agent Teams
+
+Multi-Agent Teams sind ein experimentelles Feature, bei dem ein Lead-Agent Aufgaben an
+mehrere Teammates delegiert, die parallel in eigenen tmux-Panes arbeiten.
+
+In `.config` aktivieren:
+```bash
+AGENT_TEAMS=true
+```
+
+Claude Code startet dann automatisch in einer tmux-Session. Wenn du ein Team spawnen
+lässt, bekommt jeder Agent sein eigenes Terminal-Fenster (Split Pane).
+
+**tmux Basics im Container:**
+- `Ctrl+B` dann Pfeiltaste → zwischen Panes wechseln
+- `Ctrl+B` dann `z` → Pane fullscreen / zurück
+- `Ctrl+B` dann `d` → tmux detachen (Container läuft weiter)
+
+> ⚠️ Agent Teams verbrauchen deutlich mehr Tokens – jeder Teammate hat sein eigenes
+> Context Window. Am besten mit konkreten, parallelisierbaren Aufgaben nutzen.
 
 ## Dateistruktur
 

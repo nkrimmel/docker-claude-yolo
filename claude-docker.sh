@@ -24,6 +24,7 @@ CONTAINER_NAME="claude-code-session"
 CPU_LIMIT=""
 MEMORY_LIMIT=""
 GPU=""
+AGENT_TEAMS=""
 
 # --- Load config ---
 if [[ -f "$CONFIG_FILE" ]]; then
@@ -170,6 +171,9 @@ echo "  Auth:       $AUTH_MODE"
 echo "  YOLO mode:  $YOLO_MODE"
 echo ""
 
+# --- Ensure ~/.claude exists for persistent config ---
+mkdir -p "$HOME/.claude"
+
 # --- Stop old container if running ---
 if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
     echo "🧹 Removing previous container..."
@@ -177,9 +181,9 @@ if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
 fi
 
 # --- Build the claude command ---
-CLAUDE_CMD="claude"
+CLAUDE_CMD="cd /workspace && claude"
 if [[ "$YOLO_MODE" == true ]]; then
-    CLAUDE_CMD="claude --dangerously-skip-permissions"
+    CLAUDE_CMD="cd /workspace && claude --dangerously-skip-permissions"
 fi
 
 # --- Build docker run arguments ---
@@ -188,13 +192,13 @@ DOCKER_ARGS=(
     --name "$CONTAINER_NAME"
     -v "$PROJECT_DIR":/workspace
     -v claude-code-npm-cache:/home/claude/.npm
+    -v "$HOME/.claude":/home/claude/.claude
     -e TERM="xterm-256color"
 )
 
 # Auth
 if [[ "$AUTH_MODE" == "subscription" ]]; then
-    DOCKER_ARGS+=(-v "$HOME/.claude":/home/claude/.claude)
-    echo "🔑 Using subscription auth (mounting ~/.claude)"
+    echo "🔑 Using subscription auth"
 elif [[ "$AUTH_MODE" == "apikey" ]]; then
     DOCKER_ARGS+=(-e ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY")
     echo "🔑 Using API key auth"
@@ -216,6 +220,12 @@ if [[ -n "${GPU:-}" ]]; then
     echo "⚙️  GPU: $GPU"
 fi
 
+# Agent Teams
+if [[ "${AGENT_TEAMS:-}" == "true" ]]; then
+    DOCKER_ARGS+=(-e CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1)
+    echo "🤖 Agent Teams: enabled (tmux split panes)"
+fi
+
 echo ""
 echo "🚀 Starting container..."
 echo "   Mounting: $PROJECT_DIR → /workspace"
@@ -225,4 +235,12 @@ echo "   Type 'exit' or Ctrl+D to leave."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-docker run "${DOCKER_ARGS[@]}" "$IMAGE_NAME" bash -c "$CLAUDE_CMD"
+# When agent teams are enabled, start Claude inside a tmux session
+# so teammates get their own split panes automatically
+if [[ "${AGENT_TEAMS:-}" == "true" ]]; then
+    docker run "${DOCKER_ARGS[@]}" "$IMAGE_NAME" \
+        bash -c "tmux new-session -s claude '$CLAUDE_CMD'"
+else
+    docker run "${DOCKER_ARGS[@]}" "$IMAGE_NAME" \
+        bash -c "$CLAUDE_CMD"
+fi
