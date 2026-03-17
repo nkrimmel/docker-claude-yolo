@@ -262,7 +262,7 @@ echo ""
 # so teammates get their own split panes automatically
 if [[ "${AGENT_TEAMS:-}" == "true" ]]; then
     docker run "${DOCKER_ARGS[@]}" "$IMAGE_NAME" \
-        bash -c "tmux new-session -s claude '$CLAUDE_CMD'"
+        bash -c "export TERM=xterm-256color && tmux new-session -s claude \; send-keys '$CLAUDE_CMD' Enter"
 else
     docker run "${DOCKER_ARGS[@]}" "$IMAGE_NAME" \
         bash -c "$CLAUDE_CMD"
