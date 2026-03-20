@@ -107,15 +107,15 @@ if [[ "$LOGIN_MODE" == true ]]; then
     if command -v claude &>/dev/null; then
         claude login
     else
-        echo "❌ Claude Code CLI ist nicht auf dem Host installiert."
+        echo "❌ Claude Code CLI is not installed on the host."
         echo ""
-        echo "   Installieren mit:"
-        echo "   npm install -g @anthropic-ai/claude-code"
+        echo "   Install with:"
+        echo "   curl -fsSL https://claude.ai/install.sh | sh"
         echo ""
-        echo "   Oder manuell einloggen:"
-        echo "   1. claude-docker starten (ohne --login)"
-        echo "   2. Im Container: claude login"
-        echo "   Die Tokens werden in ~/.claude gespeichert."
+        echo "   Or login manually:"
+        echo "   1. Start claude-docker (without --login)"
+        echo "   2. In the container: claude login"
+        echo "   Tokens are saved to ~/.claude"
         exit 1
     fi
 
@@ -182,14 +182,20 @@ SETTINGS_FILE="$HOME/.claude/settings.json"
 if [[ ! -f "$SETTINGS_FILE" ]]; then
     echo '{}' > "$SETTINGS_FILE"
 fi
-# Enable auto-memory and configure claude-hud plugin
+# Enable auto-memory, configure claude-hud plugin, and set up HUD statusLine
 if command -v jq &>/dev/null; then
-    tmp=$(jq '
+    # StatusLine command - dynamically finds latest plugin version at runtime
+    STATUSLINE_CMD=$(cat <<'EOFCMD'
+bash -c 'plugin_dir=$(ls -d "${CLAUDE_CONFIG_DIR:-$HOME/.claude}"/plugins/cache/claude-hud/claude-hud/*/ 2>/dev/null | awk -F/ '"'"'{ print $(NF-1) "\t" $0 }'"'"' | sort -t. -k1,1n -k2,2n -k3,3n -k4,4n | tail -1 | cut -f2-); exec "/usr/local/bin/node" "${plugin_dir}dist/index.js"'
+EOFCMD
+    )
+    tmp=$(jq --arg cmd "$STATUSLINE_CMD" '
         .autoMemoryEnabled = true |
-        .extraKnownMarketplaces["jarrodwatts-claude-hud"] //= {
+        .extraKnownMarketplaces["claude-hud"] //= {
             "source": { "source": "github", "repo": "jarrodwatts/claude-hud" }
         } |
-        .enabledPlugins["claude-hud@jarrodwatts-claude-hud"] = true
+        .enabledPlugins["claude-hud@claude-hud"] = true |
+        .statusLine = { "type": "command", "command": $cmd }
     ' "$SETTINGS_FILE") && echo "$tmp" > "$SETTINGS_FILE"
 fi
 
@@ -209,7 +215,7 @@ fi
 
 # --- Build the claude command ---
 # Install claude-hud plugin (no-op if already installed), then start claude
-PLUGIN_SETUP="claude plugin marketplace add jarrodwatts/claude-hud 2>/dev/null; claude plugin install claude-hud@jarrodwatts-claude-hud 2>/dev/null; "
+PLUGIN_SETUP="claude plugin marketplace add jarrodwatts/claude-hud 2>/dev/null; claude plugin install claude-hud@claude-hud 2>/dev/null; "
 CLAUDE_CMD="cd /workspace && ${PLUGIN_SETUP}claude"
 if [[ "$YOLO_MODE" == true ]]; then
     CLAUDE_CMD="cd /workspace && ${PLUGIN_SETUP}claude --dangerously-skip-permissions"

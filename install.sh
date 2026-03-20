@@ -2,15 +2,15 @@
 set -euo pipefail
 
 # ============================================================================
-# Installiert 'claude-yolo' und 'claude-docker' als Terminal-Befehle.
+# Installs 'claude-yolo' and 'claude-docker' as terminal commands.
 #
 # Usage:
 #   cd claude-code-docker/
-#   ./install-commands.sh
+#   ./install.sh
 #
-# Danach nutzbar:
-#   claude-yolo ~/projects/mein-projekt
-#   claude-docker ~/projects/mein-projekt
+# After installation:
+#   claude-yolo ~/projects/my-project
+#   claude-docker ~/projects/my-project
 #   claude-docker --login
 # ============================================================================
 
@@ -19,7 +19,7 @@ LAUNCHER="$SCRIPT_DIR/claude-docker.sh"
 BIN_DIR="$HOME/.local/bin"
 
 if [[ ! -f "$LAUNCHER" ]]; then
-    echo "❌ claude-docker.sh nicht gefunden in $SCRIPT_DIR"
+    echo "❌ claude-docker.sh not found in $SCRIPT_DIR"
     exit 1
 fi
 
@@ -49,14 +49,14 @@ if echo "$PATH" | tr ':' '\n' | grep -qx "$BIN_DIR"; then
     IN_PATH=true
 fi
 
-echo "✅ Befehle installiert:"
+echo "✅ Commands installed:"
 echo "   $BIN_DIR/claude-docker"
 echo "   $BIN_DIR/claude-yolo"
 echo ""
-echo "   Verwendung:"
-echo "   claude-yolo ~/projects/mein-projekt"
+echo "   Usage:"
+echo "   claude-yolo ~/projects/my-project"
 echo "   claude-docker --login"
-echo "   claude-docker ~/projects/mein-projekt"
+echo "   claude-docker ~/projects/my-project"
 echo ""
 
 if [[ "$IN_PATH" == false ]]; then
@@ -68,18 +68,18 @@ if [[ "$IN_PATH" == false ]]; then
         *)    RC_FILE="$HOME/.profile" ;;
     esac
 
-    echo "⚠️  $BIN_DIR ist nicht in deinem PATH."
-    echo "   Füge folgende Zeile zu $RC_FILE hinzu:"
+    echo "⚠️  $BIN_DIR is not in your PATH."
+    echo "   Add the following line to $RC_FILE:"
     echo ""
     echo "   export PATH=\"\$HOME/.local/bin:\$PATH\""
     echo ""
 
-    read -rp "   Soll ich das automatisch tun? [J/n]: " confirm
+    read -rp "   Should I add it automatically? [Y/n]: " confirm
     if echo "$confirm" | grep -iqv '^n$'; then
         echo '' >> "$RC_FILE"
         echo '# Claude Code Docker commands' >> "$RC_FILE"
         echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$RC_FILE"
-        echo "   ✅ Zu $RC_FILE hinzugefügt."
-        echo "   Einmal 'source $RC_FILE' ausführen oder neues Terminal öffnen."
+        echo "   ✅ Added to $RC_FILE."
+        echo "   Run 'source $RC_FILE' or open a new terminal."
     fi
 fi

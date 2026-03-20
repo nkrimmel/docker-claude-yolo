@@ -20,8 +20,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 ENV LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
-# Install Claude Code globally
-RUN npm install -g @anthropic-ai/claude-code
+# Install Claude Code via native installer
+# Installs to ~/.local/bin as root, then symlink to /usr/local/bin for all users
+RUN curl -fsSL https://claude.ai/install.sh | sh \
+    && ln -sf /root/.local/bin/claude /usr/local/bin/claude
 
 # Create "claude" user with host UID/GID for correct file permissions.
 # Handles conflicts with existing users/groups (e.g. "node" at 1000,
