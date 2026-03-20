@@ -13,7 +13,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     jq \
     ripgrep \
     tmux \
-    && rm -rf /var/lib/apt/lists/*
+    locales \
+    ncurses-term \
+    && rm -rf /var/lib/apt/lists/* \
+    && sed -i '/en_US.UTF-8/s/^# //' /etc/locale.gen && locale-gen
+
+ENV LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
 # Install Claude Code globally
 RUN npm install -g @anthropic-ai/claude-code

@@ -177,10 +177,20 @@ echo ""
 mkdir -p "$HOME/.claude"
 touch "$HOME/.claude.json"
 
-# Ensure settings.json has bypassPermissions for unattended runs
+# Ensure settings.json exists and has autoMemoryEnabled for persistent context
 SETTINGS_FILE="$HOME/.claude/settings.json"
 if [[ ! -f "$SETTINGS_FILE" ]]; then
     echo '{}' > "$SETTINGS_FILE"
+fi
+# Enable auto-memory and configure claude-hud plugin
+if command -v jq &>/dev/null; then
+    tmp=$(jq '
+        .autoMemoryEnabled = true |
+        .extraKnownMarketplaces["jarrodwatts-claude-hud"] //= {
+            "source": { "source": "github", "repo": "jarrodwatts/claude-hud" }
+        } |
+        .enabledPlugins["claude-hud@jarrodwatts-claude-hud"] = true
+    ' "$SETTINGS_FILE") && echo "$tmp" > "$SETTINGS_FILE"
 fi
 
 # Deploy global CLAUDE.md if not present (unattended mode instructions)
@@ -198,9 +208,11 @@ if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
 fi
 
 # --- Build the claude command ---
-CLAUDE_CMD="cd /workspace && claude"
+# Install claude-hud plugin (no-op if already installed), then start claude
+PLUGIN_SETUP="claude plugin marketplace add jarrodwatts/claude-hud 2>/dev/null; claude plugin install claude-hud@jarrodwatts-claude-hud 2>/dev/null; "
+CLAUDE_CMD="cd /workspace && ${PLUGIN_SETUP}claude"
 if [[ "$YOLO_MODE" == true ]]; then
-    CLAUDE_CMD="cd /workspace && claude --dangerously-skip-permissions"
+    CLAUDE_CMD="cd /workspace && ${PLUGIN_SETUP}claude --dangerously-skip-permissions"
 fi
 
 # Add max-turns for unattended runs
@@ -259,10 +271,12 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 # When agent teams are enabled, start Claude inside a tmux session
-# so teammates get their own split panes automatically
+# so teammates get their own split panes automatically.
+# Uses detached-then-attach pattern for Mac compatibility (Docker Desktop
+# routes the PTY through a Linux VM, which breaks tmux command chaining).
 if [[ "${AGENT_TEAMS:-}" == "true" ]]; then
     docker run "${DOCKER_ARGS[@]}" "$IMAGE_NAME" \
-        bash -c "export TERM=xterm-256color && tmux new-session -s claude \; send-keys '$CLAUDE_CMD' Enter"
+        bash -c "tmux new-session -d -s claude && tmux send-keys -t claude '$CLAUDE_CMD' Enter && exec tmux attach -t claude"
 else
     docker run "${DOCKER_ARGS[@]}" "$IMAGE_NAME" \
         bash -c "$CLAUDE_CMD"
