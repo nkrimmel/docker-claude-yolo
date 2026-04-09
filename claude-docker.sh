@@ -221,6 +221,13 @@ if [[ "$YOLO_MODE" == true ]]; then
     CLAUDE_CMD="cd /workspace && ${PLUGIN_SETUP}claude --dangerously-skip-permissions"
 fi
 
+# Force tmux pane backend when agent teams are enabled.
+# Without this flag, Claude may silently fall back to in-process mode
+# (known bug: teammateMode in settings.json is parsed as undefined).
+if [[ "${AGENT_TEAMS:-}" == "true" ]]; then
+    CLAUDE_CMD="$CLAUDE_CMD --teammate-mode tmux"
+fi
+
 # Add max-turns for unattended runs
 if [[ -n "${MAX_TURNS:-}" ]]; then
     CLAUDE_CMD="$CLAUDE_CMD --max-turns $MAX_TURNS"
@@ -235,6 +242,8 @@ DOCKER_ARGS=(
     -v "$HOME/.claude":/home/claude/.claude
     -v "$HOME/.claude.json":/home/claude/.claude.json
     -e TERM="xterm-256color"
+    -e LANG="en_US.UTF-8"
+    -e LC_ALL="en_US.UTF-8"
 )
 
 # Auth
@@ -281,8 +290,9 @@ echo ""
 # Uses detached-then-attach pattern for Mac compatibility (Docker Desktop
 # routes the PTY through a Linux VM, which breaks tmux command chaining).
 if [[ "${AGENT_TEAMS:-}" == "true" ]]; then
+    # Append 'tmux kill-server' so the container stops when claude exits (e.g. /exit)
     docker run "${DOCKER_ARGS[@]}" "$IMAGE_NAME" \
-        bash -c "tmux new-session -d -s claude && tmux send-keys -t claude '$CLAUDE_CMD' Enter && exec tmux attach -t claude"
+        bash -c "tmux new-session -d -s claude && tmux send-keys -t claude '$CLAUDE_CMD; tmux kill-server' Enter && exec tmux attach -t claude"
 else
     docker run "${DOCKER_ARGS[@]}" "$IMAGE_NAME" \
         bash -c "$CLAUDE_CMD"
