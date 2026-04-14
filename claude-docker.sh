@@ -294,6 +294,7 @@ if [[ "${AGENT_TEAMS:-}" == "true" ]]; then
     docker run "${DOCKER_ARGS[@]}" "$IMAGE_NAME" \
         bash -c "tmux new-session -d -s claude && tmux send-keys -t claude '$CLAUDE_CMD; tmux kill-server' Enter && exec tmux attach -t claude"
 else
+    # Use tmux even without agent teams so scroll-back works in the container
     docker run "${DOCKER_ARGS[@]}" "$IMAGE_NAME" \
-        bash -c "$CLAUDE_CMD"
+        bash -c "tmux new-session -d -s claude && tmux send-keys -t claude '$CLAUDE_CMD; tmux kill-server' Enter && exec tmux attach -t claude"
 fi

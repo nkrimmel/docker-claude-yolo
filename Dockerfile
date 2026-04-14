@@ -54,4 +54,14 @@ RUN set -e; \
 USER claude
 WORKDIR /workspace
 
+# Enable tmux mouse scrolling and increase scroll-back buffer
+RUN printf '%s\n' \
+    'set -g mouse on' \
+    'set -g history-limit 50000' \
+    'set -g default-terminal "xterm-256color"' \
+    'set -ga terminal-overrides ",xterm-256color:Tc"' \
+    'set -g focus-events on' \
+    'set -s escape-time 10' \
+    > /home/claude/.tmux.conf
+
 CMD ["bash"]
