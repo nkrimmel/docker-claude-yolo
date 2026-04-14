@@ -62,6 +62,11 @@ RUN printf '%s\n' \
     'set -ga terminal-overrides ",xterm-256color:Tc"' \
     'set -g focus-events on' \
     'set -s escape-time 10' \
+    'set -s set-clipboard on' \
+    'set -ga terminal-overrides ",*:Ms=\\E]52;c;%p2%s\\7"' \
+    'bind-key -T copy-mode    MouseDragEnd1Pane send-keys -X copy-selection-no-clear' \
+    'bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-selection-no-clear' \
+    'bind-key -T root         MouseDown2Pane    paste-buffer' \
     > /home/claude/.tmux.conf
 
 CMD ["bash"]

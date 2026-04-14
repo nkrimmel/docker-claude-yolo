@@ -273,7 +273,7 @@ fi
 # Agent Teams
 if [[ "${AGENT_TEAMS:-}" == "true" ]]; then
     DOCKER_ARGS+=(-e CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1)
-    echo "🤖 Agent Teams: enabled (tmux split panes)"
+    echo "🤖 Agent Teams: enabled"
 fi
 
 echo ""
@@ -285,16 +285,4 @@ echo "   Type 'exit' or Ctrl+D to leave."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-# When agent teams are enabled, start Claude inside a tmux session
-# so teammates get their own split panes automatically.
-# Uses detached-then-attach pattern for Mac compatibility (Docker Desktop
-# routes the PTY through a Linux VM, which breaks tmux command chaining).
-if [[ "${AGENT_TEAMS:-}" == "true" ]]; then
-    # Append 'tmux kill-server' so the container stops when claude exits (e.g. /exit)
-    docker run "${DOCKER_ARGS[@]}" "$IMAGE_NAME" \
-        bash -c "tmux new-session -d -s claude && tmux send-keys -t claude '$CLAUDE_CMD; tmux kill-server' Enter && exec tmux attach -t claude"
-else
-    # Use tmux even without agent teams so scroll-back works in the container
-    docker run "${DOCKER_ARGS[@]}" "$IMAGE_NAME" \
-        bash -c "tmux new-session -d -s claude && tmux send-keys -t claude '$CLAUDE_CMD; tmux kill-server' Enter && exec tmux attach -t claude"
-fi
+docker run "${DOCKER_ARGS[@]}" "$IMAGE_NAME" bash -c "$CLAUDE_CMD"
